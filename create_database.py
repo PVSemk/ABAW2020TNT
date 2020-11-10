@@ -32,14 +32,14 @@ from sort_non_competition_set import sort_videos
 
 
 # paths to original aff2 videos
-use_comp_folders = True
+use_comp_folders = False
 if use_comp_folders:
     video_paths = ['/data/face/Aff2/tmp/batch1', '/data/face/Aff2/tmp/batch2']
 else:
-    video_paths = ['/data/face/Aff2/tmp/NON_Competition/ALLVIDEOS'] # just all videos in one folder
+    video_paths = ['/home/pavel/datasets/Aff-Wild2/all_video'] # just all videos in one folder
 
-csv_file_path = 'video_info.txt'
-output_dir = 'aff2_processed/'   # this is where the extracted data will be stored (in /extracted)
+output_dir = '/home/pavel/datasets/Aff-Wild2/tnt_prepared_data'   # this is where the extracted data will be stored (in /extracted)
+csv_file_path = os.path.join(output_dir, 'video_info.txt')
 
 def create_database():
 
@@ -106,6 +106,8 @@ def create_database():
         if os.path.isfile(destination):
             os.remove(destination)
         # instead of symlink you could copy and rename the videos
+        if os.path.exists(destination):
+            continue
         os.symlink(origin, destination)
         # count the frames and add some infos
         vid = Video(destination)
@@ -117,6 +119,9 @@ def create_database():
 def extract_audio():
     all_videos = find_all_video_files(output_dir)
     for video in tqdm(all_videos):
+        audio_name = os.path.splitext(video)[0] + '.wav'
+        if os.path.exists(audio_name):
+            continue
         mkvfile = os.path.join(os.path.dirname(video), 'temp.mkv')
         command = 'mkvmerge -o ' + mkvfile + ' ' + video
         subprocess.call(command, shell=True)
@@ -138,7 +143,6 @@ def extract_audio():
         command = 'ffmpeg -i ' + video + ' -ar 44100 -ac 1 -y ' + audio_tmp
         subprocess.call(command, shell=True)
         # use the offset to pad the audio with zeros, or trim the audio
-        audio_name = os.path.splitext(video)[0] + '.wav'
         tfm = Transformer()
         if offset_ms >= 0:
             tfm.pad(start_duration=offset_ms / 1000)
@@ -161,7 +165,7 @@ def create_alignments():
         print(video_filename)
         # load the alignment+mask file
         # create the alignment
-        extraction_info_path = os.path.join(output_dir, video_filename + '_alignment_mask.pkl')
+        extraction_info_path = os.path.join(output_dir, 'aff2_processed', video_filename + '_alignment_mask.pkl')
         print(extraction_info_path)
         extraction_info = pickle.load(open(extraction_info_path, 'rb'))
 
